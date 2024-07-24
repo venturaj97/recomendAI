@@ -1,7 +1,5 @@
-# app/routes/auth.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from passlib.context import CryptContext
@@ -16,7 +14,7 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-SECRET_KEY = "secret"  # Deve ser uma chave secreta segura
+SECRET_KEY = "your_secret_key"  # Deve ser uma chave secreta segura
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -31,9 +29,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -58,16 +56,16 @@ def register(user: UserCreate, session: Session = Depends(get_session)):
     return db_user
 
 @router.post("/token", response_model=Token)
-def login_for_access_token(form_data: UserCreate, session: Session = Depends(get_session)):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
     user = authenticate_user(session, form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
-    credentials_exception = HTTPException(status_code=401, detail="Could not validate credentials")
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")

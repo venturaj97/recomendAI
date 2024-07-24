@@ -1,7 +1,34 @@
-# app/schemas.py
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
+
+class MovieBase(BaseModel):
+    title: str
+    description: str
+    release_date: datetime
+
+class MovieCreate(MovieBase):
+    pass
+
+class MovieRead(MovieBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+class RatingBase(BaseModel):
+    rating: int
+    user_id: int
+    movie_id: int
+
+class RatingCreate(RatingBase):
+    pass
+
+class RatingRead(RatingBase):
+    id: int
+
+    class Config:
+        orm_mode = True
 
 class Token(BaseModel):
     access_token: str
@@ -22,35 +49,3 @@ class UserRead(UserBase):
 
     class Config:
         orm_mode = True
-
-
-class MovieBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    release_date: Optional[str] = None
-
-class MovieCreate(MovieBase):
-    pass
-
-class MovieRead(MovieBase):
-    id: int
-
-    class Config:
-        from_attributes = True  # Atualizado para V2 do Pydantic
-
-
-class RatingBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    release_date: Optional[str] = None
-
-class RatingCreate(RatingBase):
-    pass
-
-class RatingRead(RatingBase):
-    id: int
-
-    class Config:
-        from_attributes = True  # Atualizado para V2 do Pydantic
-
-
